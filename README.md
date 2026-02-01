@@ -12,85 +12,89 @@ Search LinkedIn profiles by job title and location, automatically filter by "Ope
 
 ## Requirements
 
-- Python 3.11+
-- Google Chrome browser
-- LinkedIn account (logged in via Chrome)
+- Python 3.11 or higher ([Download](https://www.python.org/downloads/))
+- Google Chrome browser ([Download](https://www.google.com/chrome/))
+- Git ([Download](https://git-scm.com/downloads))
+- LinkedIn account
 
-## Installation
+## Quick Start
 
-### 1. Clone the repository
+### Windows
 
 ```bash
+# Clone the repository
 git clone https://github.com/nolancacheux/linkedin-opentowork-scraper.git
 cd linkedin-opentowork-scraper
-```
 
-### 2. Create a virtual environment
-
-```bash
+# Create virtual environment
 python -m venv venv
-
-# Windows
 venv\Scripts\activate
 
-# macOS/Linux
-source venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
+playwright install chromium
+
+# Configure
+copy .env.example .env
+
+# Run
+python -m src.main
 ```
 
-### 4. Install Playwright browsers
+### macOS / Linux
 
 ```bash
+# Clone the repository
+git clone https://github.com/nolancacheux/linkedin-opentowork-scraper.git
+cd linkedin-opentowork-scraper
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
 playwright install chromium
+
+# Configure
+cp .env.example .env
+
+# Run
+python -m src.main
 ```
-
-### 5. (Optional) Set up Google Sheets export
-
-See [docs/INSTALLATION.md](docs/INSTALLATION.md) for Google Sheets API setup.
 
 ## Usage
 
-### Basic usage
+### Interactive Mode
+
+Run without arguments to get prompted for input:
 
 ```bash
 python -m src.main
 ```
 
-The script will prompt you for:
+The script will ask for:
 - Job title (e.g., "Testing Engineer")
 - Location (e.g., "Lille, France")
 - Maximum number of profiles to scrape
 
-### Command line options
+### Command Line Mode
 
 ```bash
 python -m src.main --job "Testing Engineer" --location "Lille" --max 100
 ```
 
-### Export options
+### Export to Google Sheets
 
 ```bash
-# Export to CSV (default)
-python -m src.main --output csv
-
-# Export to Google Sheets
 python -m src.main --output sheets --sheet-id YOUR_SHEET_ID
 ```
 
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for Google Sheets API setup.
+
 ## Configuration
 
-Copy `.env.example` to `.env` and configure:
-
-```bash
-cp .env.example .env
-```
-
-Available options:
+Edit `.env` to customize settings:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -114,6 +118,8 @@ The scraper collects the following data for each "Open to Work" profile:
 | `profile_url` | LinkedIn profile URL |
 | `scraped_at` | Timestamp |
 
+Output files are saved in the `output/` folder.
+
 ## Safety
 
 This tool implements several anti-detection measures:
@@ -123,6 +129,17 @@ This tool implements several anti-detection measures:
 - Long pauses every 50 actions
 - Uses your existing browser profile (not headless)
 - Respects session limits
+
+Recommendations:
+- Keep searches under 200 profiles per session
+- Wait at least a few hours between sessions
+- Use a secondary LinkedIn account if possible
+
+## Documentation
+
+- [Installation Guide](docs/INSTALLATION.md) - Detailed setup instructions
+- [Usage Guide](docs/USAGE.md) - How to use the scraper
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## Disclaimer
 
