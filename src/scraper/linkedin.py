@@ -1,7 +1,6 @@
 """Main LinkedIn scraper class."""
 
 import random
-import sys
 from typing import Generator, Optional
 from playwright.sync_api import sync_playwright, Page, Browser, BrowserContext
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
@@ -46,7 +45,6 @@ class LinkedInScraper:
     def start(self) -> None:
         """Start the browser."""
         logger.info("Starting browser...")
-        logger.info("IMPORTANT: Close all Chrome windows before running!")
 
         self.playwright = sync_playwright().start()
 
@@ -62,8 +60,6 @@ class LinkedInScraper:
                     "--disable-blink-features=AutomationControlled",
                     "--disable-infobars",
                     "--start-maximized",
-                    "--no-first-run",
-                    "--no-default-browser-check",
                 ],
                 viewport={"width": 1920, "height": 1080},
                 ignore_default_args=["--enable-automation"],
@@ -77,27 +73,21 @@ class LinkedInScraper:
             logger.info("Browser started successfully")
 
         except Exception as e:
-            error_msg = str(e).lower()
-            if "user data directory is already in use" in error_msg or "lock" in error_msg:
-                logger.error("Chrome is already running!")
-                logger.error("Please close ALL Chrome windows and try again.")
-                sys.exit(1)
-            else:
-                logger.error(f"Failed to start browser: {e}")
-                logger.info("Falling back to new browser instance (you will need to log in)...")
+            logger.error(f"Failed to start browser: {e}")
+            logger.info("Falling back to new browser instance...")
 
-                self.browser = self.playwright.chromium.launch(
-                    headless=self.headless,
-                    channel="chrome",
-                    args=[
-                        "--disable-blink-features=AutomationControlled",
-                        "--disable-infobars",
-                    ],
-                )
-                self.context = self.browser.new_context(
-                    viewport={"width": 1920, "height": 1080}
-                )
-                self.page = self.context.new_page()
+            self.browser = self.playwright.chromium.launch(
+                headless=self.headless,
+                channel="chrome",
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-infobars",
+                ],
+            )
+            self.context = self.browser.new_context(
+                viewport={"width": 1920, "height": 1080}
+            )
+            self.page = self.context.new_page()
 
     def close(self) -> None:
         """Close the browser."""
@@ -128,38 +118,20 @@ class LinkedInScraper:
             self.page.goto(config.LINKEDIN_BASE_URL, wait_until="domcontentloaded")
             human_delay(2, 4)
 
-            current_url = self.page.url
-            logger.info(f"Current URL: {current_url}")
-
-            if "/login" in current_url or "/checkpoint" in current_url or "signin" in current_url:
-                logger.info("Not logged in - login page detected")
-                return False
-
-            if "/feed" in current_url:
-                logger.info("Logged in - feed page detected")
-                return True
-
             logged_in_indicators = [
-                ".global-nav__me-photo",
-                ".feed-identity-module__actor-image",
-                "img.global-nav__me-photo",
-                "[data-control-name='identity_welcome_message']",
+                "nav.global-nav",
+                "[data-control-name='nav.settings']",
+                ".feed-identity-module",
+                ".global-nav__me",
             ]
 
             for selector in logged_in_indicators:
-                try:
-                    if self.page.locator(selector).count() > 0:
-                        logger.info(f"Logged in - found indicator: {selector}")
-                        return True
-                except Exception:
-                    continue
+                if self.page.locator(selector).count() > 0:
+                    return True
 
-            page_text = self.page.content().lower()
-            if "sign in" in page_text and "join now" in page_text:
-                logger.info("Not logged in - sign in page content detected")
+            if "/login" in self.page.url or "/checkpoint" in self.page.url:
                 return False
 
-            logger.info("Login status unclear, assuming not logged in")
             return False
 
         except Exception as e:
@@ -176,10 +148,8 @@ class LinkedInScraper:
         Returns:
             True if logged in within timeout
         """
-        logger.info("=" * 50)
-        logger.info("Please log in to LinkedIn in the browser window!")
+        logger.info("Please log in to LinkedIn in the browser window...")
         logger.info(f"Waiting up to {timeout} seconds...")
-        logger.info("=" * 50)
 
         self.page.goto(f"{config.LINKEDIN_BASE_URL}/login", wait_until="domcontentloaded")
 
@@ -193,16 +163,11 @@ class LinkedInScraper:
                 logger.error("Login timeout exceeded")
                 return False
 
-            current_url = self.page.url
-            if "/feed" in current_url:
-                logger.info("Login successful!")
-                return True
-
             if self.is_logged_in():
                 logger.info("Login successful!")
                 return True
 
-            human_delay(3, 5)
+            human_delay(2, 3)
 
     def _scroll_page(self) -> bool:
         """
@@ -289,8 +254,6 @@ class LinkedInScraper:
         Yields:
             ProfileData objects for matching profiles
         """
-        logger.info("Checking LinkedIn login status...")
-
         if not self.is_logged_in():
             if not self.wait_for_login():
                 logger.error("Could not log in to LinkedIn")
@@ -301,14 +264,6 @@ class LinkedInScraper:
 
         self.page.goto(search_url, wait_until="domcontentloaded")
         human_delay(3, 5)
-
-        current_url = self.page.url
-        if "/login" in current_url:
-            logger.error("Redirected to login page - session expired?")
-            if not self.wait_for_login():
-                return
-            self.page.goto(search_url, wait_until="domcontentloaded")
-            human_delay(3, 5)
 
         collected_count = 0
         total_scraped = 0
@@ -340,9 +295,6 @@ class LinkedInScraper:
 
                 if card_count == 0:
                     logger.warning("No profile cards found on page")
-                    logger.info(f"Current URL: {self.page.url}")
-                    page_title = self.page.title()
-                    logger.info(f"Page title: {page_title}")
                     break
 
                 logger.info(f"Page {page_num}: Found {card_count} profile cards")

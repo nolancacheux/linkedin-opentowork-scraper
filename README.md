@@ -17,14 +17,6 @@ Search LinkedIn profiles by job title and location, automatically filter by "Ope
 - Git ([Download](https://git-scm.com/downloads))
 - LinkedIn account
 
-## Important
-
-**Before running the script, you MUST:**
-1. Close ALL Google Chrome windows
-2. Be logged into LinkedIn in Chrome (before closing it)
-
-The script uses your existing Chrome profile to access your LinkedIn session.
-
 ## Quick Start
 
 ### Windows
