@@ -20,10 +20,6 @@ class Config:
     # Safety limits
     MAX_PROFILES_PER_SESSION: int = int(os.getenv("MAX_PROFILES_PER_SESSION", "500"))
 
-    # Google Sheets
-    GOOGLE_SHEETS_ID: str = os.getenv("GOOGLE_SHEETS_ID", "")
-    GOOGLE_CREDENTIALS_PATH: str = os.getenv("GOOGLE_CREDENTIALS_PATH", "credentials.json")
-
     # Browser
     CHROME_USER_DATA_DIR: str = os.getenv("CHROME_USER_DATA_DIR", "")
 

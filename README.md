@@ -1,12 +1,12 @@
 # LinkedIn Open to Work Scraper
 
-Search LinkedIn profiles by job title and location, automatically filter by "Open to Work" status, and export results to Google Sheets or CSV.
+Search LinkedIn profiles by job title and location, automatically filter by "Open to Work" status, and export results to CSV.
 
 ## Features
 
 - Search by job title and location (e.g., "Testing Engineer" in "Lille, France")
 - Auto-detect "Open to Work" badge on profiles
-- Export to Google Sheets or CSV
+- Export to CSV
 - Human-like behavior to avoid detection
 - Uses your existing Chrome browser and LinkedIn session
 
@@ -84,13 +84,15 @@ The script will ask for:
 python -m src.main --job "Testing Engineer" --location "Lille" --max 100
 ```
 
-### Export to Google Sheets
+### Options
 
-```bash
-python -m src.main --output sheets --sheet-id YOUR_SHEET_ID
-```
-
-See [docs/INSTALLATION.md](docs/INSTALLATION.md) for Google Sheets API setup.
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--job` | `-j` | Job title to search | (prompt) |
+| `--location` | `-l` | Location filter | (prompt) |
+| `--max` | `-m` | Max profiles to collect | 100 |
+| `--headless` | | Run browser headless | false |
+| `--all-profiles` | | Include non-Open to Work | false |
 
 ## Configuration
 
@@ -102,11 +104,16 @@ Edit `.env` to customize settings:
 | `MAX_DELAY` | Maximum delay between actions (seconds) | 5 |
 | `SCROLL_PAUSE` | Pause after each scroll (seconds) | 1 |
 | `MAX_PROFILES_PER_SESSION` | Safety limit per session | 500 |
-| `GOOGLE_SHEETS_ID` | Target Google Sheets ID | - |
 
 ## Output
 
-The scraper collects the following data for each "Open to Work" profile:
+CSV files are saved in the `output/` folder:
+
+```
+output/linkedin_opentowork_20260202_083000.csv
+```
+
+The scraper collects the following data:
 
 | Field | Description |
 |-------|-------------|
@@ -117,8 +124,6 @@ The scraper collects the following data for each "Open to Work" profile:
 | `location` | Location |
 | `profile_url` | LinkedIn profile URL |
 | `scraped_at` | Timestamp |
-
-Output files are saved in the `output/` folder.
 
 ## Safety
 

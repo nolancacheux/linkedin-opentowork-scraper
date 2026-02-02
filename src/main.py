@@ -12,7 +12,7 @@ from rich.table import Table
 from .config import config
 from .scraper import LinkedInScraper
 from .scraper.profile_parser import ProfileData
-from .export import CSVExporter, GoogleSheetsExporter
+from .export import CSVExporter
 from .utils.logger import setup_logger, get_logger
 
 console = Console()
@@ -54,16 +54,12 @@ def print_results_table(profiles: list[ProfileData]):
 @click.option("--job", "-j", help="Job title to search for")
 @click.option("--location", "-l", help="Location to filter by")
 @click.option("--max", "-m", "max_profiles", type=int, help="Maximum profiles to collect")
-@click.option("--output", "-o", type=click.Choice(["csv", "sheets"]), default="csv", help="Output format")
-@click.option("--sheet-id", help="Google Sheets ID (for sheets output)")
 @click.option("--headless", is_flag=True, help="Run in headless mode (not recommended)")
 @click.option("--all-profiles", is_flag=True, help="Include profiles without Open to Work badge")
 def main(
     job: Optional[str],
     location: Optional[str],
     max_profiles: Optional[int],
-    output: str,
-    sheet_id: Optional[str],
     headless: bool,
     all_profiles: bool,
 ):
@@ -71,7 +67,7 @@ def main(
     LinkedIn Open to Work Scraper
 
     Search LinkedIn profiles by job title and location,
-    filter by Open to Work status, and export results.
+    filter by Open to Work status, and export to CSV.
     """
     setup_logger()
     logger = get_logger()
@@ -97,7 +93,6 @@ def main(
     console.print(f"[bold]Location:[/bold] {location or 'Any'}")
     console.print(f"[bold]Max profiles:[/bold] {max_profiles}")
     console.print(f"[bold]Filter:[/bold] {'All profiles' if all_profiles else 'Open to Work only'}")
-    console.print(f"[bold]Output:[/bold] {output.upper()}")
     console.print()
 
     if not Confirm.ask("Start scraping?", default=True):
@@ -132,28 +127,12 @@ def main(
     console.print()
 
     try:
-        if output == "csv":
-            filepath = CSVExporter.export(profiles)
-            console.print(f"[green]Exported to: {filepath}[/green]")
-
-        elif output == "sheets":
-            sheets_id = sheet_id or config.GOOGLE_SHEETS_ID
-            if not sheets_id:
-                sheets_id = Prompt.ask("[cyan]Google Sheets ID[/cyan]")
-
-            exporter = GoogleSheetsExporter(spreadsheet_id=sheets_id)
-            exporter.export(profiles, clear_existing=True)
-            console.print(f"[green]Exported to Google Sheets[/green]")
-            console.print(f"[blue]https://docs.google.com/spreadsheets/d/{sheets_id}[/blue]")
+        filepath = CSVExporter.export(profiles)
+        console.print(f"[green]Exported to: {filepath}[/green]")
 
     except Exception as e:
         logger.error(f"Export error: {e}")
         console.print(f"[red]Export error: {e}[/red]")
-
-        if output == "sheets":
-            console.print("[yellow]Falling back to CSV export...[/yellow]")
-            filepath = CSVExporter.export(profiles)
-            console.print(f"[green]Exported to: {filepath}[/green]")
 
     console.print()
     console.print(f"[bold green]Done! Collected {len(profiles)} profiles.[/bold green]")

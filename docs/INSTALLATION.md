@@ -116,74 +116,6 @@ You should see the help message with available options.
 
 ---
 
-## Google Sheets Setup (Optional)
-
-Follow these steps to enable Google Sheets export.
-
-### Step 1: Create a Google Cloud Project
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Sign in with your Google account
-3. Click "Select a project" (top bar) > "New Project"
-4. Enter a project name (e.g., "LinkedIn Scraper")
-5. Click "Create"
-6. Wait for the project to be created, then select it
-
-### Step 2: Enable Google Sheets API
-
-1. In the Google Cloud Console, go to the menu (hamburger icon, top left)
-2. Click "APIs & Services" > "Library"
-3. Search for "Google Sheets API"
-4. Click on "Google Sheets API"
-5. Click "Enable"
-
-### Step 3: Create Service Account
-
-1. Go to menu > "APIs & Services" > "Credentials"
-2. Click "Create Credentials" (top of page)
-3. Select "Service Account"
-4. Enter a name (e.g., "scraper-service")
-5. Click "Create and Continue"
-6. Skip the optional steps, click "Done"
-
-### Step 4: Generate JSON Key
-
-1. In the Credentials page, find your service account
-2. Click on the service account email
-3. Go to the "Keys" tab
-4. Click "Add Key" > "Create new key"
-5. Select "JSON"
-6. Click "Create"
-7. A JSON file will be downloaded automatically
-
-### Step 5: Configure the Scraper
-
-1. Rename the downloaded JSON file to `credentials.json`
-2. Move it to the project root folder (same level as README.md)
-3. Open `.env` file and set your Google Sheet ID:
-
-```
-GOOGLE_SHEETS_ID=your_spreadsheet_id_here
-```
-
-**How to find your Google Sheet ID:**
-- Open your Google Sheet
-- Look at the URL: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
-- The SPREADSHEET_ID is the long string between `/d/` and `/edit`
-
-### Step 6: Share the Spreadsheet
-
-1. Open the `credentials.json` file
-2. Find the `client_email` field (looks like: `name@project.iam.gserviceaccount.com`)
-3. Copy this email
-4. Open your Google Sheet
-5. Click "Share" (top right)
-6. Paste the service account email
-7. Select "Editor" permission
-8. Click "Send" (ignore the warning about not notifying)
-
----
-
 ## Troubleshooting
 
 ### "python" is not recognized (Windows)
@@ -216,15 +148,3 @@ pip uninstall playwright
 pip install playwright
 playwright install chromium --with-deps
 ```
-
-### Google Sheets "Permission denied"
-
-1. Make sure you shared the spreadsheet with the service account email
-2. Make sure you gave "Editor" access (not "Viewer")
-3. Wait a few minutes for permissions to propagate
-
-### "credentials.json not found"
-
-1. Make sure the file is in the project root folder
-2. Make sure it's named exactly `credentials.json`
-3. Check `GOOGLE_CREDENTIALS_PATH` in `.env` if using a different location

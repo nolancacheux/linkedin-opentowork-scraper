@@ -52,34 +52,6 @@
 3. Reduce `MAX_PROFILES_PER_SESSION` in `.env`
 4. Increase `MIN_DELAY` and `MAX_DELAY` in `.env`
 
-### Export Issues
-
-#### "Spreadsheet ID not configured"
-
-**Cause**: Google Sheets ID not set.
-
-**Solutions**:
-1. Set `GOOGLE_SHEETS_ID` in `.env`
-2. Pass `--sheet-id` on command line
-
-#### "Credentials file not found"
-
-**Cause**: Google service account credentials missing.
-
-**Solutions**:
-1. Follow the setup in INSTALLATION.md
-2. Ensure `credentials.json` is in project root
-3. Set correct path in `GOOGLE_CREDENTIALS_PATH`
-
-#### "Permission denied" on Google Sheets
-
-**Cause**: Service account doesn't have access to the spreadsheet.
-
-**Solutions**:
-1. Share the spreadsheet with the service account email
-2. Grant "Editor" permissions
-3. Wait a few minutes for permissions to propagate
-
 ### Python Issues
 
 #### "ModuleNotFoundError"
