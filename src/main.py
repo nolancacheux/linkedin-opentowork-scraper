@@ -1,7 +1,13 @@
 """Main entry point for LinkedIn Open to Work Scraper."""
 
 import sys
+import io
 from typing import Optional
+
+# Fix Windows console encoding for Unicode characters
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 import click
 from rich.console import Console
@@ -15,7 +21,7 @@ from .scraper.profile_parser import ProfileData
 from .export import CSVExporter
 from .utils.logger import setup_logger, get_logger
 
-console = Console()
+console = Console(force_terminal=True)
 
 
 def print_banner():
@@ -55,13 +61,13 @@ def print_results_table(profiles: list[ProfileData]):
 @click.option("--location", "-l", help="Location to filter by")
 @click.option("--max", "-m", "max_profiles", type=int, help="Maximum profiles to collect")
 @click.option("--headless", is_flag=True, help="Run in headless mode (not recommended)")
-@click.option("--all-profiles", is_flag=True, help="Include profiles without Open to Work badge")
+@click.option("--open-to-work-only", is_flag=True, help="Only include profiles with Open to Work indicator")
 def main(
     job: Optional[str],
     location: Optional[str],
     max_profiles: Optional[int],
     headless: bool,
-    all_profiles: bool,
+    open_to_work_only: bool,
 ):
     """
     LinkedIn Open to Work Scraper
@@ -92,7 +98,7 @@ def main(
     console.print(f"[bold]Search:[/bold] {job}")
     console.print(f"[bold]Location:[/bold] {location or 'Any'}")
     console.print(f"[bold]Max profiles:[/bold] {max_profiles}")
-    console.print(f"[bold]Filter:[/bold] {'All profiles' if all_profiles else 'Open to Work only'}")
+    console.print(f"[bold]Filter:[/bold] {'Open to Work only' if open_to_work_only else 'All profiles'}")
     console.print()
 
     if not Confirm.ask("Start scraping?", default=True):
@@ -107,7 +113,7 @@ def main(
                 job_title=job,
                 location=location,
                 max_profiles=max_profiles,
-                open_to_work_only=not all_profiles,
+                open_to_work_only=open_to_work_only,
             ):
                 profiles.append(profile)
 

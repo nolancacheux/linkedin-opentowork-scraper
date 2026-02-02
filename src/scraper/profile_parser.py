@@ -55,11 +55,13 @@ class ProfileParser:
             "span.name",
         ],
         "headline": [
+            "div.t-14.t-black.t-normal",
             ".entity-result__primary-subtitle",
             ".search-result__snippets",
             ".subline-level-1",
         ],
         "location": [
+            "div.t-14.t-normal:not(.t-black)",
             ".entity-result__secondary-subtitle",
             ".subline-level-2",
         ],
@@ -144,6 +146,21 @@ class ProfileParser:
                 except Exception:
                     continue
 
+            if not profile.full_name:
+                # Fallback: find links to profile pages
+                try:
+                    all_links = card.locator("a").all()
+                    for link in all_links:
+                        href = link.get_attribute("href") or ""
+                        if "/in/" in href:
+                            text = link.inner_text().strip()
+                            if text and len(text) > 2:
+                                profile.full_name = text.split("\n")[0].strip()
+                                profile.profile_url = href.split("?")[0]
+                                break
+                except Exception:
+                    pass
+
             if profile.full_name:
                 profile.first_name, profile.last_name = cls.parse_name(profile.full_name)
 
@@ -168,16 +185,17 @@ class ProfileParser:
                 except Exception:
                     continue
 
-            for selector in cls.CARD_SELECTORS["link"]:
-                try:
-                    link_el = card.locator(selector).first
-                    if link_el.count() > 0:
-                        href = link_el.get_attribute("href")
-                        if href:
-                            profile.profile_url = href.split("?")[0]
-                            break
-                except Exception:
-                    continue
+            if not profile.profile_url:
+                for selector in cls.CARD_SELECTORS["link"]:
+                    try:
+                        link_el = card.locator(selector).first
+                        if link_el.count() > 0:
+                            href = link_el.get_attribute("href")
+                            if href:
+                                profile.profile_url = href.split("?")[0]
+                                break
+                    except Exception:
+                        continue
 
             if not profile.full_name and not profile.profile_url:
                 return None

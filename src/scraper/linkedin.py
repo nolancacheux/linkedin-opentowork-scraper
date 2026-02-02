@@ -3,7 +3,7 @@
 import random
 from typing import Generator, Optional
 from playwright.sync_api import sync_playwright, Page, Browser, BrowserContext
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import Progress, TextColumn, BarColumn, TaskProgressColumn
 
 from ..config import config
 from ..utils.logger import get_logger
@@ -212,27 +212,171 @@ class LinkedInScraper:
             True if navigation successful
         """
         try:
-            next_button = self.page.locator("button[aria-label='Next']")
+            # Multiple selectors for different languages and LinkedIn versions
+            next_selectors = [
+                "button[aria-label='Next']",
+                "button[aria-label='Suivant']",  # French
+                "button[aria-label='Weiter']",   # German
+                "a[aria-label='Next']",
+                "a[aria-label='Suivant']",
+                "button.artdeco-pagination__button--next",
+                "button[class*='pagination__button--next']",
+                "li.artdeco-pagination__indicator--number:last-child button",
+            ]
 
-            if next_button.count() > 0 and next_button.is_enabled():
-                human_delay()
-                next_button.click()
-                human_delay(2, 4)
-                self._increment_action()
-                return True
+            for selector in next_selectors:
+                try:
+                    btn = self.page.locator(selector).first
+                    if btn.count() > 0 and btn.is_visible():
+                        # Check if button is enabled (not disabled)
+                        is_disabled = btn.get_attribute("disabled")
+                        if is_disabled:
+                            continue
 
-            next_link = self.page.locator("a[aria-label='Next']")
-            if next_link.count() > 0:
-                human_delay()
-                next_link.click()
-                human_delay(2, 4)
-                self._increment_action()
-                return True
+                        human_delay()
+                        btn.click()
+                        human_delay(2, 4)
+                        self._increment_action()
+                        logger.debug(f"Navigated to next page using: {selector}")
+                        return True
+                except Exception:
+                    continue
+
+            # Try scrolling to bottom and looking for pagination
+            self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            human_delay(1, 2)
+
+            # Try clicking on next page number directly
+            try:
+                # Find current page and click next number
+                current = self.page.locator("button[aria-current='true']").first
+                if current.count() > 0:
+                    current_text = current.inner_text()
+                    if current_text.isdigit():
+                        next_num = int(current_text) + 1
+                        next_page_btn = self.page.locator(f"button:has-text('{next_num}')").first
+                        if next_page_btn.count() > 0:
+                            human_delay()
+                            next_page_btn.click()
+                            human_delay(2, 4)
+                            self._increment_action()
+                            return True
+            except Exception:
+                pass
 
             return False
 
         except Exception as e:
             logger.debug(f"Next page error: {e}")
+            return False
+
+    def _apply_location_filter(self, location: str) -> bool:
+        """
+        Apply location filter through LinkedIn's UI.
+
+        Args:
+            location: Location name to filter by
+
+        Returns:
+            True if filter was applied successfully
+        """
+        try:
+            # Check if location filter is already showing results for the location
+            # by looking at the current filters
+            current_url = self.page.url
+            if f"location={location}" in current_url.lower() or "geourn" in current_url.lower():
+                logger.debug("Location filter may already be applied via URL")
+
+            # Click on "Locations" filter button
+            location_filter_selectors = [
+                "button:has-text('Locations')",
+                "button:has-text('Lieux')",  # French
+                "button:has-text('Standorte')",  # German
+                "button[aria-label*='location']",
+                "button[aria-label*='Location']",
+                "#searchFilter_geoUrn",
+            ]
+
+            filter_clicked = False
+            for selector in location_filter_selectors:
+                try:
+                    btn = self.page.locator(selector).first
+                    if btn.count() > 0 and btn.is_visible():
+                        btn.click()
+                        human_delay(1, 2)
+                        filter_clicked = True
+                        break
+                except Exception:
+                    continue
+
+            if not filter_clicked:
+                logger.debug("Could not find location filter button")
+                return False
+
+            # Type in the location search box
+            location_input_selectors = [
+                "input[placeholder*='location']",
+                "input[placeholder*='Location']",
+                "input[placeholder*='lieu']",
+                "input[aria-label*='location']",
+                "input[role='combobox']",
+            ]
+
+            for selector in location_input_selectors:
+                try:
+                    input_el = self.page.locator(selector).first
+                    if input_el.count() > 0 and input_el.is_visible():
+                        input_el.fill(location)
+                        human_delay(1, 2)
+
+                        # Click on first suggestion
+                        suggestion_selectors = [
+                            "[role='option']",
+                            ".basic-typeahead__selectable",
+                            "li[id*='typeahead']",
+                        ]
+
+                        for sug_sel in suggestion_selectors:
+                            try:
+                                suggestion = self.page.locator(sug_sel).first
+                                if suggestion.count() > 0:
+                                    suggestion.click()
+                                    human_delay(0.5, 1)
+                                    break
+                            except Exception:
+                                continue
+
+                        break
+                except Exception:
+                    continue
+
+            # Click "Show results" button
+            apply_selectors = [
+                "button:has-text('Show results')",
+                "button:has-text('Afficher les résultats')",
+                "button[data-test-reusables-filter-apply-button]",
+                "button.search-reusables__filter-apply-button",
+            ]
+
+            for selector in apply_selectors:
+                try:
+                    apply_btn = self.page.locator(selector).first
+                    if apply_btn.count() > 0 and apply_btn.is_visible():
+                        apply_btn.click()
+                        human_delay(2, 3)
+                        logger.info(f"Applied location filter: {location}")
+                        return True
+                except Exception:
+                    continue
+
+            # Try pressing Enter as fallback
+            self.page.keyboard.press("Enter")
+            human_delay(2, 3)
+
+            return True
+
+        except Exception as e:
+            logger.debug(f"Error applying location filter: {e}")
             return False
 
     def scrape_search_results(
@@ -260,10 +404,14 @@ class LinkedInScraper:
                 return
 
         search_url = build_search_url_simple(job_title, location)
-        logger.info(f"Navigating to search: {job_title} in {location}")
+        logger.info(f"Navigating to search: {job_title}" + (f" in {location}" if location else ""))
 
         self.page.goto(search_url, wait_until="domcontentloaded")
         human_delay(3, 5)
+
+        # Apply location filter through UI if needed
+        if location:
+            self._apply_location_filter(location)
 
         collected_count = 0
         total_scraped = 0
@@ -271,7 +419,6 @@ class LinkedInScraper:
         page_num = 1
 
         with Progress(
-            SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
@@ -312,7 +459,15 @@ class LinkedInScraper:
                             seen_urls.add(profile.profile_url)
                             total_scraped += 1
 
-                            if not open_to_work_only or profile.is_open_to_work:
+                            # Check location filter
+                            location_match = True
+                            if location:
+                                profile_loc = profile.location.lower()
+                                search_loc = location.lower()
+                                # Match if location contains the search term or vice versa
+                                location_match = search_loc in profile_loc or profile_loc in search_loc
+
+                            if location_match and (not open_to_work_only or profile.is_open_to_work):
                                 collected_count += 1
                                 progress.update(
                                     task,

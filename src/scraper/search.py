@@ -47,18 +47,25 @@ def build_search_url(
     return f"{base_url}?{query_string}"
 
 
-def build_search_url_simple(job_title: str, location: str) -> str:
+def build_search_url_simple(job_title: str, location: str, open_to_work_only: bool = False) -> str:
     """
-    Build a simple LinkedIn search URL using the search bar format.
+    Build a simple LinkedIn search URL with proper location filtering.
 
     Args:
         job_title: Job title to search for
         location: Location to filter by
+        open_to_work_only: Not used (kept for API compatibility)
 
     Returns:
         Complete search URL
     """
-    search_query = f"{job_title} {location}".strip()
-    encoded_query = urllib.parse.quote(search_query)
+    encoded_keywords = urllib.parse.quote(job_title)
 
-    return f"{config.LINKEDIN_SEARCH_URL}?keywords={encoded_query}&origin=GLOBAL_SEARCH_HEADER"
+    url = f"{config.LINKEDIN_SEARCH_URL}?keywords={encoded_keywords}&origin=GLOBAL_SEARCH_HEADER"
+
+    # Add location as a separate filter parameter
+    if location:
+        encoded_location = urllib.parse.quote(location)
+        url += f"&location={encoded_location}"
+
+    return url

@@ -62,3 +62,6 @@ test-results/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Mypy
+.mypy_cache/
